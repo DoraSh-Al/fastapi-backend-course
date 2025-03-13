@@ -6,6 +6,9 @@ from pydantic import BaseModel
 
 sys.path.append(os.path.abspath("src"))
 from jsonbin_storage import JSONBinStorage
+from cloudflare_client import CloudflareClient
+
+cloudflare_client = CloudflareClient()
 
 app = FastAPI()
 
@@ -27,6 +30,13 @@ def get_tasks():
 # Создать новую задачу
 @app.post("/tasks", response_model=Task)
 def create_task(task: Task):
+    
+     # Отправляем текст задачи в LLM
+    llm_response = cloudflare_client.get_llm_response(f"Объясни, как решить задачу: {task.title}")
+
+    # Добавляем ответ LLM в описание задачи
+    task.description = f"{task.description}\n\nСовет от LLM:\n{llm_response}"
+ 
     tasks = storage.load_tasks()
     tasks.append(task)
     storage.save_tasks(tasks)
